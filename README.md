@@ -23,7 +23,7 @@ The Transformer model is implemented in `model/`. The model is composed of the f
 - `transformer.py`: Transformer
 
 ## Quickstart 🚀
-
+### Train
 train on a single GPU machine
 ```bash
 ./run_single.sh
@@ -41,7 +41,12 @@ parallel train on multi-GPUs by Slurm
 ./run_slurm.sh
 ```
 
-inference
+### loss
+Here is the loss of training the Transformer on 4 * 16GB GPUs. The fluctuation at 800k steps is caused by the training on a checkpoint. Obviously, the model is currently underfitting because of the limited GPU time.😂 I will add the evaluation step in the future to check if the model is overfitting or underfitting.
+<img src="asset/loss.svg"  width="450">
+
+
+### Inference
 ```bash
 $ python inference.py 
 loading model...
