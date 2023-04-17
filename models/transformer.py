@@ -1,6 +1,6 @@
 import torch as tr
 import torch.nn as nn
-from models.attentions import RelPositionEmbedding
+from models.embedding import RelPositionEmbedding
 from models.decoder import TransformerDecoder
 from models.encoder import TransformerEncoder
 from utils.mask import make_seq_mask
