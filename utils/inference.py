@@ -1,7 +1,7 @@
 import torch as tr
 from utils.utils import load_dict
 from utils.mask import make_seq_mask
-from preprocessing import tokenize
+from utils.preprocessing import tokenize
 from models.transformer import Transformer
 import jieba
 import logging
