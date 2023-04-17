@@ -120,14 +120,14 @@ def parse_args():
     parser.add_argument("--folder", type=str, 
                         default="data/wmt/training-parallel-nc-v13", 
                         help="Folder to save the data")
-    parser.add_argument("--tokenize_level", type=str,
+    parser.add_argument("--token_level", type=str,
                         default="word")
     args = parser.parse_args()
     return args
 
 if __name__ == "__main__":
     args = parse_args()
-    tok_level = args.tokenize_level
+    tok_level = args.token_level
     # preprocess the data
     print("preprocessing the data......")
     en_data, en_tokens2id = preprocess(

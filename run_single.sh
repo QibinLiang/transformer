@@ -6,7 +6,7 @@
 
 stage=-1
 stop_stage=2
-tokenize_level="char"
+token_level="char"
 batch_size=16
 lr=0.00005
 epochs=350
@@ -26,14 +26,14 @@ fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Preprocess the data"
-    python utils/preprocessing.py --tokenize_level "$tokenize_level"
+    python utils/preprocessing.py --token_level "$token_level"
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "stage 1: Train the model"
     # train step
     python train.py \
-        --token_level "$tokenize_level" \
+        --token_level "$token_level" \
         --batch_size "$batch_size" \
         --lr "$lr" \
         --epochs "$epochs" \

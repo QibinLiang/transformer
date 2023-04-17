@@ -3,7 +3,7 @@
 num_gpus=4
 ddp_file=ckpt/ddp_init_char
 use_ddp=true
-tokenize_level="char"
+token_level="char"
 batch_size=16
 lr=0.00005
 epochs=350
@@ -22,7 +22,7 @@ for((i=0; i<$num_gpus; ++i)); do
   init_file=file://$(readlink -f $ddp_file)
   echo running on rank "$gpu_id"
   python train.py \
-      --tokenize_level "$tokenize_level" \
+      --token_level "$token_level" \
       --batch_size "$batch_size" \
       --lr "$lr" \
       --epochs "$epochs" \
