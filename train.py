@@ -18,7 +18,7 @@ def get_args():
                            default=r"data/wmt/training-parallel-nc-v13")
     argparser.add_argument("--train_data", type=str, 
                            default=r"data/wmt/training-parallel-nc-v13")
-    argparser.add_argument("--token_level", type=str, default="char")
+    argparser.add_argument("--tokenize_level", type=str, default="char")
     argparser.add_argument("--batch_size", type=int, default=12)
     argparser.add_argument("--epochs", type=int, default=10)
     argparser.add_argument("--lr", type=float, default=0.0001)
@@ -125,9 +125,9 @@ def trainer(
                 tr.save(chpt, f"ckpt/model_char_{epoch}.pt")
 
 def main(args):
-    src_dict = os.path.join(args.src_dict, "zhdict_"+args.token_level+".txt")
-    tgt_dict = os.path.join(args.tgt_dict, "endict_"+args.token_level+".txt")
-    train_data = os.path.join(args.train_data, "data_"+args.token_level+".json")
+    src_dict = os.path.join(args.src_dict, "zhdict_"+args.tokenize_level+".txt")
+    tgt_dict = os.path.join(args.tgt_dict, "endict_"+args.tokenize_level+".txt")
+    train_data = os.path.join(args.train_data, "data_"+args.tokenize_level+".json")
 
     src_tok2id, src_id2tok = load_dict(src_dict)
     tgt_tok2id, tgt_id2tok = load_dict(tgt_dict)
