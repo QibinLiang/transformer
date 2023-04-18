@@ -13,8 +13,7 @@ import logging
 
 # turn off jieba logging
 jieba.setLogLevel(logging.INFO)
-
-# nltk.download('stopwords')
+nltk.download('punkt')
 
 # Tokenize the text
 def tokenize(text, lang="en", zh_char_level=False):
@@ -99,18 +98,18 @@ def preprocess(text, lang="en", freq_threshold=2 ,keep_punc=False, zh_char_level
     tokens2id["<sos/eos>"] = len(tokens2id)
     return data, tokens2id
 
-def save_data(data, folder, lang="en", tok_level="word"):
-    with open(os.path.join(folder, lang+"data_"+tok_level+".txt"), "w", encoding="utf-8") as f:
+def save_data(data, folder, dtype="train/train", lang="en", tok_level="word"):
+    with open(os.path.join(folder, dtype+"_"+lang+"_"+tok_level+".txt"), "w", encoding="utf-8") as f:
         for line in data:
             f.write(" ".join(line) + "\n")
 
 def save_dict(data, folder, lang="en", tok_level="word"):
-    with open(os.path.join(folder, lang+"dict_"+tok_level+".txt"), "w", encoding="utf-8") as f:
+    with open(os.path.join(folder, lang+"_dict_"+tok_level+".txt"), "w", encoding="utf-8") as f:
         for key, value in data.items():
             f.write(key + " " + str(value) + "\n")
 
-def save_json(en_data, zh_data, folder, tok_level="word"):
-    with open(os.path.join(folder, "data_"+tok_level+".json"), "w", encoding="utf-8") as f:
+def save_json(en_data, zh_data, folder, dtype="train", tok_level="word"):
+    with open(os.path.join(folder, dtype+"_"+tok_level+".json"), "w", encoding="utf-8") as f:
         for en, zh in zip(en_data, zh_data):
             json.dump({"src": zh, "tgt": en}, f,  ensure_ascii=False)
             f.write("\n")
@@ -119,7 +118,7 @@ def save_json(en_data, zh_data, folder, tok_level="word"):
 def parse_args():
     parser = argparse.ArgumentParser(description="Preprocess the WMT 2018 data")
     parser.add_argument("--folder", type=str, 
-                        default="data/wmt/training-parallel-nc-v13", 
+                        default="data/wmt", 
                         help="Folder to save the data")
     parser.add_argument("--keep_punc", action="store_true",
                         help="Keep the punctuation")
@@ -134,22 +133,45 @@ if __name__ == "__main__":
     # preprocess the data
     print("preprocessing the train data......")
     en_data, en_tokens2id = preprocess(
-        os.path.join(args.folder, "news-commentary-v13.zh-en.en"), "en")
+        os.path.join(args.folder, 
+                    "train/training-parallel-nc-v13/news-commentary-v13.zh-en.en"), 
+                    "en")
      
     zh_data, zh_tokens2id = preprocess(
-        os.path.join(args.folder, "news-commentary-v13.zh-en.zh"), "zh", zh_char_level=(tok_level == "char"))
+        os.path.join(args.folder, 
+                    "train/training-parallel-nc-v13/news-commentary-v13.zh-en.zh"), 
+                    "zh", 
+                    zh_char_level=(tok_level == "char"))
     # save the data
     print("saving the train data......")
-    save_data(en_data, args.folder, "en", tok_level)
-    save_data(zh_data, args.folder, "zh", tok_level)
-    # save the dict
+    save_data(en_data, args.folder,"train/train", "en", tok_level)
+    save_data(zh_data, args.folder, "train/train","zh", tok_level)
+    #save the dict
     save_dict(en_tokens2id, args.folder, "en", tok_level)
     save_dict(zh_tokens2id, args.folder, "zh", tok_level)
     # save the json
-    save_json(en_data, zh_data, args.folder, tok_level)
+    save_json(en_data, zh_data, args.folder, "train", tok_level)
 
     print("preprocessing the dev data......")
-    en_data, _ = preprocess(
-        os.path.join(args.folder, "newstest2018-enzh-src.en.sgm"), "en")
-    zh_data, _ = preprocess(
-        os.path.join(args.folder, "newstest2018-enzh-ref.zh.sgm"), "zh", zh_char_level=(tok_level == "char"))
+    en_dev_data, _ = preprocess(
+        os.path.join(args.folder, "test/dev.en"), "en")
+    zh_dev_data, _ = preprocess(
+        os.path.join(args.folder, "test/dev.zh"), "zh", zh_char_level=(tok_level == "char"))
+        # save the data
+    print("saving the dev data......")
+    save_data(en_dev_data, args.folder,"test/dev", "en", tok_level)
+    save_data(zh_dev_data, args.folder,"test/dev", "zh", tok_level)
+    # save the json
+    save_json(en_dev_data, zh_dev_data, args.folder,"dev", tok_level)
+
+    print("preprocessing the test data......")
+    en_test_data, _ = preprocess(
+        os.path.join(args.folder, "test/test.en"), "en", keep_punc=args.keep_punc)
+    zh_test_data, _ = preprocess(
+        os.path.join(args.folder, "test/test.zh"), "zh", zh_char_level=(tok_level == "char"), keep_punc=args.keep_punc)
+        # save the data
+    print("saving the dev test......")
+    save_data(en_test_data, args.folder,"test/test", "en", tok_level)
+    save_data(zh_test_data, args.folder,"test/test", "zh", tok_level)
+    # save the json
+    save_json(en_test_data, zh_test_data, args.folder,"test", tok_level)

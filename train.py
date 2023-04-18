@@ -13,11 +13,13 @@ import tensorboardX as tbx
 def get_args():
     argparser = argparse.ArgumentParser()
     argparser.add_argument("--src_dict", type=str, 
-                           default=r"data/wmt/training-parallel-nc-v13")
+                           default=r"data/wmt/")
     argparser.add_argument("--tgt_dict", type=str, 
-                           default=r"data/wmt/training-parallel-nc-v13")
+                           default=r"data/wmt/")
     argparser.add_argument("--train_data", type=str, 
-                           default=r"data/wmt/training-parallel-nc-v13")
+                           default=r"data/wmt/")
+    argparser.add_argument("--dev_data", type=str, 
+                           default=r"data/wmt/")
     argparser.add_argument("--token_level", type=str, default="char")
     argparser.add_argument("--batch_size", type=int, default=12)
     argparser.add_argument("--epochs", type=int, default=10)
@@ -56,6 +58,7 @@ def trainer(
         optimizer: tr.optim.Optimizer,
         criterion: tr.nn.Module,
         train_loader: tr.utils.data.DataLoader,
+        dev_loader: tr.utils.data.DataLoader,
         epochs: int,
         summary_writer: tbx.SummaryWriter = None,
         device: tr.device = tr.device("cuda" if tr.cuda.is_available() else "cpu"), 
@@ -82,8 +85,13 @@ def trainer(
     if not if_ddp:
         model = model.to(device)
     model.train()
+    
     total_loss = 0
+    dev_step = 0
+    dev_loss = 0
+
     for epoch in range(start_epochs, epochs):
+        # train step
         for batch in train_loader:
             
             tgt = batch['tgt']
@@ -109,11 +117,39 @@ def trainer(
             total_steps += 1
             total_loss += loss.item()
             if total_steps % verbose_interval == 0 and rank == 0:
-                log.info(f"epoch: {epoch} - step: {total_steps} - loss: {total_loss/verbose_interval}")
+                log.info(f"train - epoch: {epoch} - step: {total_steps} - loss: {total_loss/verbose_interval}")
                 if summary_writer is not None:
-                    summary_writer.add_scalar("loss", total_loss/verbose_interval, total_steps)
+                    summary_writer.add_scalar("train_loss", total_loss/verbose_interval, total_steps)
                 total_loss = 0
+        
+        # dev step
+        with tr.no_grad():
+            # model.eval()
+            for batch in dev_loader:
+                tgt = batch['tgt']
+                src = batch['src']
+                tgt = batch['tgt_tokens']
+                src = batch['src_tokens']
+                tgt_lens = batch['tgt_lens']
+                src_lens = batch['src_lens']
+                src_mask = make_seq_mask(src_lens)
+                tgt_mask = get_joint_mask(tgt_lens-1)
 
+                src = src.to(device)
+                tgt = tgt.to(device)
+                src_mask = src_mask.to(device)
+                tgt_mask = tgt_mask.to(device)
+
+                out = model(src, tgt[:, :-1], src_mask, tgt_mask)
+                loss = criterion(out.transpose(1,2), tgt[:, 1:])
+                dev_step += 1
+                dev_loss += loss.item()
+                if dev_step % verbose_interval == 0 and rank == 0:
+                    log.info(f"dev - epoch: {epoch} - step: {dev_step} - loss: {dev_loss/verbose_interval}")
+                    if summary_writer is not None:
+                        summary_writer.add_scalar("dev_loss", dev_loss/verbose_interval, dev_step)
+                    dev_loss = 0
+            # model.train()
         # save the model for every 4 epochs
         if rank==0:
             if epoch % save_interval == 0:
@@ -126,9 +162,10 @@ def trainer(
                 tr.save(chpt, f"ckpt/model_{token_level}_{epoch}.pt")
 
 def main(args):
-    src_dict = os.path.join(args.src_dict, "zhdict_"+args.token_level+".txt")
-    tgt_dict = os.path.join(args.tgt_dict, "endict_"+args.token_level+".txt")
-    train_data = os.path.join(args.train_data, "data_"+args.token_level+".json")
+    src_dict = os.path.join(args.src_dict, "zh_dict_"+args.token_level+".txt")
+    tgt_dict = os.path.join(args.tgt_dict, "en_dict_"+args.token_level+".txt")
+    train_data = os.path.join(args.train_data, "train_"+args.token_level+".json")
+    dev_data = os.path.join(args.dev_data, "dev_"+args.token_level+".json")
     
     # if `./ckpt` not exists, create it
     if not os.path.exists('ckpt'):
@@ -186,7 +223,13 @@ def main(args):
     else:
         device = tr.device("cuda" if tr.cuda.is_available() else "cpu")
 
-    dataloader = get_dataloader(train_data, 
+    train_dataloader = get_dataloader(train_data, 
+                                src_tok2id, 
+                                tgt_tok2id, 
+                                batch_size=bs, 
+                                if_ddp=args.use_ddp)
+    
+    dev_dataloader = get_dataloader(dev_data, 
                                 src_tok2id, 
                                 tgt_tok2id, 
                                 batch_size=bs, 
@@ -196,7 +239,8 @@ def main(args):
     trainer(model, 
             optimizer, 
             criterion, 
-            dataloader, 
+            train_dataloader, 
+            dev_dataloader,
             epochs,
             summary_writer=writer, 
             ckpt=ckpt, 
