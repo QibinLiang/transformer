@@ -46,7 +46,7 @@ def init_model(
         tgt_vocab_size, 
         dropout, 
         length_scale=3)
-    model.load_state_dict(tr.load(r"ckpt/model.pt")['model'])
+    model.load_state_dict(tr.load(r"ckpt/char.pt")['model'])
     model.eval()
     print("model loaded.")
     return model, src_tok2id, src_id2tok, tgt_tok2id, tgt_id2tok

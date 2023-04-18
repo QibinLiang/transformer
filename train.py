@@ -65,6 +65,7 @@ def trainer(
         rank: int = 0,
         accumulation_steps: int = 16,
         verbose_interval: int = 100,
+        token_level: str = "char",
     ):
 
     log = Logger(__name__)
@@ -122,12 +123,16 @@ def trainer(
                     "epoch": epoch,
                     "total_steps": total_steps,
                 }
-                tr.save(chpt, f"ckpt/model_char_{epoch}.pt")
+                tr.save(chpt, f"ckpt/model_{token_level}_{epoch}.pt")
 
 def main(args):
     src_dict = os.path.join(args.src_dict, "zhdict_"+args.token_level+".txt")
     tgt_dict = os.path.join(args.tgt_dict, "endict_"+args.token_level+".txt")
     train_data = os.path.join(args.train_data, "data_"+args.token_level+".json")
+    
+    # if `./ckpt` not exists, create it
+    if not os.path.exists('ckpt'):
+        os.makedirs('ckpt')
 
     src_tok2id, src_id2tok = load_dict(src_dict)
     tgt_tok2id, tgt_id2tok = load_dict(tgt_dict)
@@ -157,7 +162,7 @@ def main(args):
         max_len=max_len,
         length_scale=length_scale)
     criterion = tr.nn.CrossEntropyLoss()
-    writer = tbx.SummaryWriter(r"tensorboard")
+    writer = tbx.SummaryWriter(f"tensorboard/{args.token_level}")
     # load the model from the checkpoint
     if args.load_model is not None:
         ckpt = tr.load(args.load_model, map_location=tr.device("cpu"))
@@ -200,7 +205,8 @@ def main(args):
             if_ddp=args.use_ddp,
             rank=args.rank,
             accumulation_steps=args.accumulation_steps,
-            verbose_interval=args.verbose_interval)
+            verbose_interval=args.verbose_interval,
+            token_level=args.token_level)
 
 if __name__ == "__main__":
     args = get_args()

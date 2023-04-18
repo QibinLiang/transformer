@@ -58,7 +58,7 @@ def remove_punctuation(text, lang="en"):
         return [word for word in text if word not in "，。！？、（）《》【】：；‘’…—"]
 
 # process the text
-def preprocess(text, lang="en", freq_threshold=2 ,zh_char_level=False):
+def preprocess(text, lang="en", freq_threshold=2 ,keep_punc=False, zh_char_level=False):
     data = []
     tokens_freq = {}
     # read the text from the file
@@ -83,7 +83,8 @@ def preprocess(text, lang="en", freq_threshold=2 ,zh_char_level=False):
             # tokenize the text
             line = tokenize(line, lang, zh_char_level)
             # remove the punctuation
-            line = remove_punctuation(line, lang)
+            if not keep_punc:
+                line = remove_punctuation(line, lang)
             # remove the stopwords
             # line = remove_stopwords(line, lang)
             # add the processed text to the data
@@ -120,6 +121,8 @@ def parse_args():
     parser.add_argument("--folder", type=str, 
                         default="data/wmt/training-parallel-nc-v13", 
                         help="Folder to save the data")
+    parser.add_argument("--keep_punc", action="store_true",
+                        help="Keep the punctuation")
     parser.add_argument("--token_level", type=str,
                         default="word")
     args = parser.parse_args()
@@ -129,14 +132,14 @@ if __name__ == "__main__":
     args = parse_args()
     tok_level = args.token_level
     # preprocess the data
-    print("preprocessing the data......")
+    print("preprocessing the train data......")
     en_data, en_tokens2id = preprocess(
         os.path.join(args.folder, "news-commentary-v13.zh-en.en"), "en")
      
     zh_data, zh_tokens2id = preprocess(
         os.path.join(args.folder, "news-commentary-v13.zh-en.zh"), "zh", zh_char_level=(tok_level == "char"))
     # save the data
-    print("saving the data......")
+    print("saving the train data......")
     save_data(en_data, args.folder, "en", tok_level)
     save_data(zh_data, args.folder, "zh", tok_level)
     # save the dict
@@ -144,3 +147,9 @@ if __name__ == "__main__":
     save_dict(zh_tokens2id, args.folder, "zh", tok_level)
     # save the json
     save_json(en_data, zh_data, args.folder, tok_level)
+
+    print("preprocessing the dev data......")
+    en_data, _ = preprocess(
+        os.path.join(args.folder, "newstest2018-enzh-src.en.sgm"), "en")
+    zh_data, _ = preprocess(
+        os.path.join(args.folder, "newstest2018-enzh-ref.zh.sgm"), "zh", zh_char_level=(tok_level == "char"))

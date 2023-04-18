@@ -4,10 +4,10 @@
 # stage 0: preprocess the data
 # stage 1: train the model
 
-stage=-1
+stage=1
 stop_stage=2
 token_level="char"
-batch_size=16
+batch_size=6
 lr=0.00005
 epochs=350
 d_model=512
