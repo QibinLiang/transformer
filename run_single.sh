@@ -4,7 +4,7 @@
 # stage 0: preprocess the data
 # stage 1: train the model
 
-stage=1
+stage=-1
 stop_stage=2
 token_level="char"
 batch_size=6
@@ -33,6 +33,10 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "stage 1: Train the model"
     # train step
     python train.py \
+        --src_dict "data/wmt" \
+        --tgt_dict "data/wmt" \
+        --train_data "data/wmt" \
+        --dev_data "data/wmt" \
         --token_level "$token_level" \
         --batch_size "$batch_size" \
         --lr "$lr" \
@@ -44,5 +48,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         --d_ff "$d_ff" \
         --accumulation_steps "$accumulation_steps" \
         --max_len "$max_len" \
+        --verbose_interval 100 \
         --save_interval "$save_interval"
 fi
