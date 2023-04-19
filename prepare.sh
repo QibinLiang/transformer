@@ -15,5 +15,5 @@ fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Preprocess the data"
-    python utils/preprocessing.py --token_level "$token_level"
+    python utils/preprocessing.py --token_level "$token_level" --download_punkt
 fi
