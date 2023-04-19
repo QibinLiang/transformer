@@ -7,10 +7,11 @@
 stage=-1
 stop_stage=1
 token_level="char"
+dataset="data"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Download the data"
-    python utils/download.py
+    python utils/download.py --dataset "$dataset"
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
