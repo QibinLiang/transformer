@@ -24,6 +24,9 @@ The Transformer model is implemented in `model/`. The model is composed of the f
 
 ## Quickstart 🚀
 ### Train
+
+You modify the `run*.sh` to set the hyperparameters and then run the following command to train the model.
+
 train on a single GPU machine
 ```bash
 ./run_single.sh
@@ -66,10 +69,11 @@ input:    exit
 - [x] distributed training
 - [ ] beam search
 - [ ] prefix beam search
-- [ ] evaluate step
+- [x] evaluate step
 - [ ] test step
 - [ ] yaml config
 - [ ] perplexity
+- [ ] lr scheduler
 
 ----
 ## Reference 📚

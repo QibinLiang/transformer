@@ -1,11 +1,16 @@
 import os
 import argparse
+
 import torch as tr
-from models.transformer import Transformer
-from utils.mask import get_joint_mask, make_seq_mask
-from utils.utils import load_dict, get_dataloader, Logger
+import torch.distributed as dist
 from torch.distributed import init_process_group
 from torch.nn.parallel import DistributedDataParallel as DDP
+
+from models.transformer import Transformer
+from torch.optim.lr_scheduler import ReduceLROnPlateau
+from utils.mask import get_joint_mask, make_seq_mask
+from utils.utils import load_dict, get_dataloader, Logger
+
 import tensorboardX as tbx
 
 # todo : add description for args
@@ -23,16 +28,23 @@ def get_args():
     argparser.add_argument("--token_level", type=str, default="char")
     argparser.add_argument("--batch_size", type=int, default=12)
     argparser.add_argument("--epochs", type=int, default=10)
-    argparser.add_argument("--lr", type=float, default=0.0001)
+    # optimizer setting
+    argparser.add_argument("--lr", type=float, default=1e-4)
+    argparser.add_argument("--min_lr", type=float, default=1e-5)
+    argparser.add_argument("--weight_decay", type=float, default=1e-5)
+    # model setting
     argparser.add_argument("--d_model", type=int, default=512)
     argparser.add_argument("--n_layers", type=int, default=6)
     argparser.add_argument("--n_heads", type=int, default=8)
     argparser.add_argument("--dropout", type=float, default=0.1)
     argparser.add_argument("--d_ff", type=int, default=2048)
-    argparser.add_argument("--accumulation_steps", type=int, default=16)
     argparser.add_argument("--max_len", type=int, default=5000)
-    argparser.add_argument("--log_dir", type=str, default=r"logs")
     argparser.add_argument("--length_scale", type=float, default=2)
+    # training setting
+    argparser.add_argument("--accumulation_steps", type=int, default=16)
+    argparser.add_argument("--warmup_steps", type=int, default=4000)
+    argparser.add_argument("--max_grad_norm", type=float, default=1.0)
+    argparser.add_argument("--log_dir", type=str, default=r"logs")
     # verbose interval
     argparser.add_argument("--verbose_interval", type=int, default=100)
     # save model
@@ -56,6 +68,7 @@ def get_args():
 def trainer(
         model: Transformer,
         optimizer: tr.optim.Optimizer,
+        scheduler: tr.optim.lr_scheduler.ReduceLROnPlateau, # todo : change to `_LRScheduler` based scheduler
         criterion: tr.nn.Module,
         train_loader: tr.utils.data.DataLoader,
         dev_loader: tr.utils.data.DataLoader,
@@ -124,7 +137,9 @@ def trainer(
         
         # dev step
         with tr.no_grad():
-            # model.eval()
+            model.eval()
+            avg_dev_loss = 0
+            current_dev_step = 0
             for batch in dev_loader:
                 tgt = batch['tgt']
                 src = batch['src']
@@ -143,13 +158,26 @@ def trainer(
                 out = model(src, tgt[:, :-1], src_mask, tgt_mask)
                 loss = criterion(out.transpose(1,2), tgt[:, 1:])
                 dev_step += 1
+                current_dev_step += 1
                 dev_loss += loss.item()
+                avg_dev_loss += loss.item()
                 if dev_step % verbose_interval == 0 and rank == 0:
                     log.info(f"dev - epoch: {epoch} - step: {dev_step} - loss: {dev_loss/verbose_interval}")
                     if summary_writer is not None:
                         summary_writer.add_scalar("dev_loss", dev_loss/verbose_interval, dev_step)
                     dev_loss = 0
-            # model.train()
+            
+            avg_dev_loss /= current_dev_step
+            # if use ddp, all_reduce the loss
+            if if_ddp:
+                avg_dev_loss = tr.tensor(avg_dev_loss, device=device)
+                dist.all_reduce(avg_dev_loss, op=dist.ReduceOp.SUM)
+                avg_dev_loss /= dist.get_world_size()
+            log.info(f"dev - epoch: {epoch} - loss: {avg_dev_loss}")
+                # update the learning rate
+            if scheduler is not None:
+                scheduler.step(avg_dev_loss)
+            model.train()
         # save the model for every 4 epochs
         if rank==0:
             if epoch % save_interval == 0:
@@ -158,6 +186,9 @@ def trainer(
                         not if_ddp else model.module.state_dict(),
                     "epoch": epoch,
                     "total_steps": total_steps,
+                    "optimizer": optimizer.state_dict(),
+                    "scheduler": scheduler.state_dict() if \
+                        scheduler is not None else None,
                 }
                 tr.save(chpt, f"ckpt/model_{token_level}_{epoch}.pt")
 
@@ -235,9 +266,22 @@ def main(args):
                                 batch_size=bs, 
                                 if_ddp=args.use_ddp)
 
-    optimizer = tr.optim.Adam(model.parameters(), lr=lr)
+    optimizer = tr.optim.Adam(
+        model.parameters(), 
+        lr=lr, 
+        weight_decay=args.weight_decay)
+    
+    if args.lr > args.min_lr:
+        scheduler = ReduceLROnPlateau(
+            optimizer=optimizer,
+            min_lr=args.min_lr, 
+            patience=5, 
+            factor=0.5)
+    else:
+        scheduler = None
     trainer(model, 
-            optimizer, 
+            optimizer,
+            scheduler, 
             criterion, 
             train_dataloader, 
             dev_dataloader,

@@ -9,11 +9,10 @@ import json
 from nltk.tokenize import word_tokenize as en_tokenize
 import logging
 
-# todo: improve the processing of making the token set. It is very slow.
+# todo: refactor the code, make it more readable
 
 # turn off jieba logging
 jieba.setLogLevel(logging.INFO)
-nltk.download('punkt')
 
 # Tokenize the text
 def tokenize(text, lang="en", zh_char_level=False):
@@ -124,11 +123,15 @@ def parse_args():
                         help="Keep the punctuation")
     parser.add_argument("--token_level", type=str,
                         default="word")
+    parser.add_argument("download_punkt", action="store_true",
+                        help="Download the punkt package")
     args = parser.parse_args()
     return args
 
 if __name__ == "__main__":
     args = parse_args()
+    if args.download_punkt:
+        nltk.download('punkt')
     tok_level = args.token_level
     # preprocess the data
     print("preprocessing the train data......")
@@ -170,7 +173,7 @@ if __name__ == "__main__":
     zh_test_data, _ = preprocess(
         os.path.join(args.folder, "test/test.zh"), "zh", zh_char_level=(tok_level == "char"), keep_punc=args.keep_punc)
         # save the data
-    print("saving the dev test......")
+    print("saving the test data......")
     save_data(en_test_data, args.folder,"test/test", "en", tok_level)
     save_data(zh_test_data, args.folder,"test/test", "zh", tok_level)
     # save the json
