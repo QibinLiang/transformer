@@ -123,7 +123,7 @@ def parse_args():
                         help="Keep the punctuation")
     parser.add_argument("--token_level", type=str,
                         default="word")
-    parser.add_argument("download_punkt", action="store_true",
+    parser.add_argument("--download_punkt", action="store_true",
                         help="Download the punkt package")
     args = parser.parse_args()
     return args
