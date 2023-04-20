@@ -32,8 +32,8 @@ def init_model(
     dropout = 0.1,
 ):
     print("loading model...")
-    src_tok2id, src_id2tok = load_dict(r"data/wmt/training-parallel-nc-v13/zhdict_char.txt")
-    tgt_tok2id, tgt_id2tok = load_dict(r"data/wmt/training-parallel-nc-v13/endict_char.txt")
+    src_tok2id, src_id2tok = load_dict(r"data/wmt/zh_dict_char.txt")
+    tgt_tok2id, tgt_id2tok = load_dict(r"data/wmt/en_dict_char.txt")
     src_vocab_size = len(src_tok2id.items())
     tgt_vocab_size = len(tgt_tok2id.items())
 
@@ -69,7 +69,7 @@ def main(
                 break
             elif txt == "":
                 continue
-            tokens = tokenize(txt, "zh")
+            tokens = tokenize(txt, "zh", True)
             src_lens = tr.tensor([len(tokens)])
             # convert tokens to ids
             src = []
