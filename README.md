@@ -6,9 +6,11 @@ This project implements the Transformer architecture from the scratch as well as
 
 This project uses the [Chinese-English parallel corpus](http://www.statmt.org/wmt18) from [WMT'18](http://www.statmt.org/wmt18/) as the training dataset. The dataset is preprocessed by `preprocessing.py` and the preprocessed dataset is stored in the `data` folder. The preprocessed dataset contains the following files:
 
-- data/data_char.json: Chinese & English character-level dataset
-- data/zh_dict.json: Chinese character-level dictionary
-- data/en_dict.json: English word-level dictionary
+- data/train_*.json: Chinese & English training set
+- data/dev_*.json: Chinese & English validation set
+- data/test_*.json: Chinese & English test set
+- data/zh_dict_*.json: Chinese dictionary
+- data/en_dict_*.json: English dictionary
 
 The English data is always tokenized in the word-level, no matter the Chinese data is tokenized in the character-level or word-level. The Chinese data is tokenized in the character-level by default, but you can also tokenize it in the word-level by setting the `--token_level` argument to `word` in `preprocessing.py`.
 
@@ -24,28 +26,43 @@ The Transformer model is implemented in `model/`. The model is composed of the f
 
 ## Quickstart 🚀
 ### Train
+First, you need to manually install the dependencies in `requirements.txt`.
+or run the following command to install the dependencies.
 
-You modify the `run*.sh` to set the hyperparameters and then run the following command to train the model.
+```bash
+pip install -r requirements.txt
+```
+
+You can modify the `run*.sh` to set the hyperparameters and then run the following command to train the model.
 
 train on a single GPU machine
 ```bash
-./run_single.sh
+bash ./run_single.sh
 ```
-
+Then, you need to preprocess the dataset by running the following command.
 parallel train on multi-GPUs 
 ```bash
-./prepare.sh
-./run.sh
+bash ./prepare.sh
+bash ./run.sh
 ```
 
 parallel train on multi-GPUs by Slurm
 ```bash
 ./prepare.sh
-./run_slurm.sh
+sbatch ./run_slurm.sh
 ```
 
-### loss
-Here is the loss of training the Transformer on 4 * 16GB GPUs. The fluctuation at 800k steps is caused by the training on a checkpoint. Obviously, the model is currently underfitting because of the limited GPU time.😂 I will add the evaluation step in the future to check if the model is overfitting or underfitting.
+### Hyperparameters
+The default settings use character-level tokenization and remove all punctuations. I trained both the word-level model and the character-level model, and the character-level model promises better performance. I removed all the punctuation just for the convenience of training. As you can see in the `utils/preprocessing.py`, the text normalization is actually implemented in a very simple way, which is not suitable for real-world application. But anyway, you can modify the `run*.sh` to set the hyperparameters and train the model on your recipe.
+
+## Results 📊
+
+### BLEU & PPL
+
+update soon
+
+### Loss
+Here is the loss of training the Transformer on 4 * 16GB GPUs. The fluctuation at 800k steps is caused by the training on a checkpoint. Obviously, the model is currently underfitting because of the limited GPU time😂. I will add the validation step in the future to check if the model is overfitting or underfitting.
 <img src="asset/loss.svg"  width="450">
 
 
@@ -69,11 +86,12 @@ input:    exit
 - [x] distributed training
 - [ ] beam search
 - [ ] prefix beam search
-- [x] evaluate step
+- [x] validation step
 - [ ] test step
 - [ ] yaml config
 - [ ] perplexity
-- [ ] lr scheduler
+- [ ] BLEU
+- [x] lr scheduler
 
 ----
 ## Reference 📚
