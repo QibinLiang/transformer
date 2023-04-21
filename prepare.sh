@@ -11,7 +11,6 @@ dataset="data"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Download the data"
-    python utils/download.py --dataset "$dataset"
     python utils/download.py --folder "$dataset"
 fi
 
