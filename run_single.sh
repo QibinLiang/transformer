@@ -5,7 +5,7 @@
 # stage 1: train the model
 
 dataset="data"
-stage=1
+stage=-1
 stop_stage=1
 token_level="char"
 batch_size=6
