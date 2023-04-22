@@ -30,7 +30,7 @@ def get_args():
     argparser.add_argument("--epochs", type=int, default=10)
     # optimizer setting
     argparser.add_argument("--lr", type=float, default=1e-4)
-    argparser.add_argument("--min_lr", type=float, default=1e-5)
+    argparser.add_argument("--min_lr", type=float, default=1)
     argparser.add_argument("--weight_decay", type=float, default=1e-5)
     # model setting
     argparser.add_argument("--d_model", type=int, default=512)
