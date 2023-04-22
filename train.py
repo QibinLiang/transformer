@@ -100,8 +100,6 @@ def trainer(
     model.train()
     
     total_loss = 0
-    dev_step = 0
-    dev_loss = 0
 
     for epoch in range(start_epochs, epochs):
         # train step
@@ -157,15 +155,9 @@ def trainer(
 
                 out = model(src, tgt[:, :-1], src_mask, tgt_mask)
                 loss = criterion(out.transpose(1,2), tgt[:, 1:])
-                dev_step += 1
+                
                 current_dev_step += 1
-                dev_loss += loss.item()
                 avg_dev_loss += loss.item()
-                if dev_step % verbose_interval == 0 and rank == 0:
-                    log.info(f"dev - epoch: {epoch} - step: {dev_step} - loss: {dev_loss/verbose_interval}")
-                    if summary_writer is not None:
-                        summary_writer.add_scalar("dev_loss", dev_loss/verbose_interval, dev_step)
-                    dev_loss = 0
             
             avg_dev_loss /= current_dev_step
             # if use ddp, all_reduce the loss
